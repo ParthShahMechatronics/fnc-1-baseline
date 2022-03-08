@@ -1,5 +1,7 @@
 import sys
 import numpy as np
+import pandas as pd
+import pickle
 
 from sklearn.ensemble import GradientBoostingClassifier
 from feature_engineering import refuting_features, polarity_features, hand_features, gen_or_load_feats
@@ -38,6 +40,7 @@ if __name__ == "__main__":
 
     # Load the competition dataset
     competition_dataset = DataSet("competition_test")
+    stances = pd.DataFrame(competition_dataset.stances)
     X_competition, y_competition = generate_features(competition_dataset.stances, competition_dataset, "competition")
 
     Xs = dict()
@@ -80,6 +83,8 @@ if __name__ == "__main__":
             best_score = score
             best_fold = clf
 
+    with open('models/baseline.pkl', 'wb') as f:
+            pickle.dump(best_fold, f)
 
 
     #Run on Holdout set and report the final score on the holdout set
@@ -92,8 +97,12 @@ if __name__ == "__main__":
     print("")
 
     #Run on competition dataset
-    predicted = [LABELS[int(a)] for a in best_fold.predict(X_competition)]
+    predicted_comp = [LABELS[int(a)] for a in best_fold.predict(X_competition)]
     actual = [LABELS[int(a)] for a in y_competition]
 
     print("Scores on the test set")
-    report_score(actual,predicted)
+    report_score(actual,predicted_comp)
+
+    answer = {"Headline" : stances['Headline'], "Body ID" : stances['Body ID'], 'Stance' : predicted_comp}
+    answer = pd.DataFrame(answer)
+    answer.to_csv(r'results/baseline/answer.csv', index=False, encoding='utf-8') # From pandas library
